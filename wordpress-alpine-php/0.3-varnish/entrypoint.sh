@@ -45,13 +45,6 @@ setup_phpmyadmin(){
     fi 
 }
     
-
-load_phpmyadmin(){
-        if ! grep -q "^Include conf/httpd-phpmyadmin.conf" $HTTPD_CONF_FILE; then
-                echo 'Include conf/httpd-phpmyadmin.conf' >> $HTTPD_CONF_FILE
-        fi
-}
-
 setup_wordpress(){
 	test ! -d "$WORDPRESS_HOME" && echo "INFO: $WORDPRESS_HOME not found. creating ..." && mkdir -p "$WORDPRESS_HOME"
 	cd $WORDPRESS_HOME
@@ -181,6 +174,21 @@ echo "Loading WordPress conf ..."
 load_wordpress
 rm -rf $WORDPRESS_SOURCE
 
+echo "Creating Varnish folders ..."
+mkdir -p /var/lib/varnish/localhost && chown nobody /var/lib/varnish/localhost
+mkdir -p /var/lib/varnish/$(hostname) && chown nobody /var/lib/varnish/$(hostname)
+
+echo "Getting Host IP for Varnish ..."
+export HOST_IP=$(hostname -i)
+
+# start-varnish.sh
+# Varnish and Apache both listen to port 80. Apache listens to 127.0.0.1:80 and Varnish to HOST_IP:80 in order to not be in conflict.
+# The startup script curls 127.0.0.1:80 each second until Apache is up and running and is able to respond to HTTP requests.
+# This step is necessary in order for an App Service to not swap containers before Apache is actually ready.
+# Starting Varnish too early would cause that.
+
+echo "Running start-varnish.sh async and waiting for apache to be ready before starting Apache..."
+start-varnish.sh &
 echo "Starting SSH ..."
 echo "Starting Apache httpd -D FOREGROUND ..."
 

@@ -10,6 +10,7 @@ This docker image currently contains the following components:
 4. Apache/Httpd (2.4.33)
 5. MariaDB ( 10.1.26/if using Local Database )
 6. Phpmyadmin ( 4.8.0/if using Local Database )
+7. Varnish (4.1.9) (Requires additional steps, view below)
 
 ## How to configure to use Azure Database for MySQL with web app 
 1. Create a Web App for Containers
@@ -51,6 +52,13 @@ DATABASE_PASSWORD | some-string
 
 >Note: Do not use the app setting DATABASE_TYPE=local if using Azure database for MySQL
 
+## How to use Varnish in-memory caching
+1. Disable ARR Affinity in Application Settings. Requests containing cookies will not be cached.
+2. The default in-memory cache size is 250M. If you need to change the value, add an Application Setting called VARNISH_CACHE_SIZE with a supported value as per the documentation: https://varnish-cache.org/docs/trunk/users-guide/storage-backends.html#malloc;
+3. The Cache-Control headers will be respected, so use this header in order to control TTL and enable/disable cache more granularly. Plugins like Cache-Control make this easier: https://wordpress.org/plugins/cache-control/ 
+
+Currently, only in-memory caching is available for this image.
+
 ## How to turn on Xdebug
 1. By default Xdebug is turned off as turning it on impacts performance.
 2. Connect by SSH.
@@ -85,13 +93,15 @@ You can update ```WEBSITES_ENABLE_APP_SERVICE_STORAGE``` = true  to enable app s
 - Some unexpected issues may happen after you scale out your site to multiple instances, if you deploy a WordPress site on Azure with this docker image and use the MariaDB built in this docker image as the database.
 - The phpMyAdmin built in this docker image is available only when you use the MariaDB built in this docker image as the database.
 - Please Include  App Setting ```WEBSITES_ENABLE_APP_SERVICE_STORAGE``` = true  when use built in MariaDB since we need files to be persisted. 
+- Please turn off the ARR Affinity option in Application Settings in order for Varnish to cache requsts.
 
 ## Change Log
-- **Version 0.3** 
+- **Version 0.3-varnish** 
   1. Use Git to deploy wordpress.
   2. Update version of PHP/Apache/Mariadb/Phpmyadmin.
   3. Add Xdebug extenstion of PHP.
   4. Use supervisord to keep SSHD and Apache.
+  5. Added a Varnish deamon to allow in-memory caching of HTTP responses for increased performance
 
 # How to Contribute
 If you have feedback please create an issue but **do not send Pull requests** to these images since any changes to the images needs to tested before it is pushed to production. 

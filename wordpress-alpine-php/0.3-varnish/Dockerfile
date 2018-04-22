@@ -15,6 +15,12 @@ ENV WORDPRESS_HOME "/home/site/wwwroot"
 #
 ENV DOCKER_BUILD_HOME "/dockerbuild"
 
+# varnish
+ENV VARNISH_BACKEND_ADDRESS 127.0.0.1
+ENV VARNISH_BACKEND_PORT 80
+ENV VARNISH_CACHE_SIZE 250M
+ENV VARNISH_PORT 80
+
 # ====================
 # Download and Install
 # ~. tools
@@ -36,7 +42,12 @@ RUN set -ex \
 	# 2. wordpress
 	# ------------
 	&& mkdir -p $WORDPRESS_SOURCE \
-        # cp in final
+	# ------------
+	# 3. varnish
+	# ------------
+	&& apk add --update varnish \
+	# ------------
+	# cp in final
 	# ----------
 	# ~. clean up
 	# ----------
@@ -46,7 +57,12 @@ RUN set -ex \
 # Configure
 # =========
 # httpd confs
+COPY httpd.conf $HTTPD_CONF_DIR/
 COPY httpd-wordpress.conf $HTTPD_CONF_DIR/
+
+# varnish start script
+COPY start-varnish.sh /usr/sbin
+RUN chmod a+x /usr/sbin/start-varnish.sh
 
 RUN set -ex \
 	##
