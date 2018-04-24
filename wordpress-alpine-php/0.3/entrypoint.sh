@@ -150,7 +150,7 @@ if [ ! -e "$WORDPRESS_HOME/wp-config.php" ]; then
         echo "INFO: DATABASE_HOST:" $DATABASE_HOST
         echo "INFO: WORDPRESS_DATABASE_NAME:" $DATABASE_NAME
         echo "INFO: WORDPRESS_DATABASE_USERNAME:" $DATABASE_USERNAME
-        echo "INFO: WORDPRESS_DATABASE_PASSWORD:" $DATABASE_PASSWORD	        
+        echo "INFO: WORDPRESS_DATABASE_PASSWORD:" $DATABASE_PASSWOR	        
         echo "INFO: ++++++++++++++++++++++++++++++++++++++++++++++++++:"
         echo "Creating database for WordPress if not exists ..."
 	    mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`$DATABASE_NAME\` CHARACTER SET utf8 COLLATE utf8_general_ci;"
