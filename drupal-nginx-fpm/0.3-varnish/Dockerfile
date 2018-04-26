@@ -20,6 +20,16 @@ ENV NGINX_LOG_DIR "/home/LogFiles/nginx"
 ENV PHP_HOME "/etc/php/7.0"
 ENV PHP_CONF_DIR $PHP_HOME"/cli"
 ENV PHP_CONF_FILE $PHP_CONF_DIR"/php.ini" 
+#varnish
+ENV VARNISH_BACKEND_ADDRESS 127.0.0.1
+ENV VARNISH_BACKEND_PORT 8080
+ENV VARNISH_CACHE_SIZE 250M
+ENV VARNISH_PORT 80
+
+# ====================
+# Override nginx.conf from parent image
+# ====================
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # ====================
 # Download and Install
@@ -29,12 +39,13 @@ ENV PHP_CONF_FILE $PHP_CONF_DIR"/php.ini"
 
 RUN mkdir -p $DOCKER_BUILD_HOME
 WORKDIR $DOCKER_BUILD_HOME
+
 # --------
 # ~. tools
 # --------
 RUN set -ex \
     && apt-get update \
-    && apt-get install -y -V --no-install-recommends git
+    && apt-get install -y -V --no-install-recommends git varnish curl
 
 # -------------
 # 1. Drupal
@@ -52,6 +63,12 @@ RUN set -ex \
 # =========
 WORKDIR $DRUPAL_HOME
 RUN rm -rf $DOCKER_BUILD_HOME
+
+# ====================
+# varnish start script
+# ====================
+COPY start-varnish.sh /usr/sbin
+RUN chmod a+x /usr/sbin/start-varnish.sh
 
 # =====
 # final

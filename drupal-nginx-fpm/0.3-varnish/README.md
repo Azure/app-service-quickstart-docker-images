@@ -15,6 +15,7 @@ This docker image currently contains the following components:
 5. Composer (1.6.1)
 6. MariaDB ( 10.1.26/if using Local Database )
 7. Phpmyadmin ( 4.8.0/if using Local Database )
+8. Varnish (4.1.9) (Requires additional steps, view below)
 
 ## How to Deploy to Azure 
 1. Create a Web App for Containers, set Docker container as ```appsvcorg/drupal-nginx-fpm:0.3``` 
@@ -55,6 +56,13 @@ DATABASE_PASSWORD | some-string
 >Note: We create a database "azurelocaldb" when using local mysql. Hence use this name when setting up the app.
 
 4. Browse http://[website]/phpmyadmin
+
+## How to use Varnish in-memory caching
+1. Disable ARR Affinity in Application Settings. Requests containing cookies will not be cached.
+2. The default in-memory cache size is 250M. If you need to change the value, add an Application Setting called VARNISH_CACHE_SIZE with a supported value as per the documentation: https://varnish-cache.org/docs/trunk/users-guide/storage-backends.html#malloc;
+3. The Cache-Control headers will be respected. Drupal, by default, does not allow caching. To turn on caching navigate to /admin/config/development/performance and set your "Page cache maximum" age value.
+
+Currently, only in-memory caching is available for this image.
 
 # How to turn on Xdebug to profile the app
 1. By default Xdebug is turned off as turning it on impacts performance.

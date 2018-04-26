@@ -136,11 +136,21 @@ echo "Starting php-fpm ..."
 service php7.0-fpm start
 chmod 777 /run/php/php7.0-fpm.sock
 
+echo "Creating Varnish folders ..."
+mkdir -p /var/lib/varnish/localhost && chown nobody /var/lib/varnish/localhost
+mkdir -p /var/lib/varnish/$(hostname) && chown nobody /var/lib/varnish/$(hostname)
+
+echo "Getting Host IP for Varnish ..."
+export HOST_IP=$(hostname -i)
+
+# start-varnish.sh
+
+echo "Running start-varnish.sh async and waiting for nginx to be ready before starting Varnish..."
+start-varnish.sh &
+
 echo "Starting Nginx ..."
 mkdir -p /home/LogFiles/nginx
 if test ! -e /home/LogFiles/nginx/error.log; then 
     touch /home/LogFiles/nginx/error.log
 fi
 /usr/sbin/nginx
-
-
