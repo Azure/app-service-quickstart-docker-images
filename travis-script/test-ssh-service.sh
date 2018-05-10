@@ -16,8 +16,7 @@ do
         testSSHEnable=$(docker top testdocker | grep sshd)        
     else
         echo "${testSSHEnable}"
-        echo "PASSED - SSH Service is running..."
-        echo "PASSED - SSH Service is running..." >> result.log
+        echo "PASSED - SSH Service is running..." | tee -a result.log
         break
     fi
 done

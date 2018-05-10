@@ -6,6 +6,7 @@ before_install:
      - chmod +x ./travis-script/test-build.sh
      - chmod +x ./travis-script/test-ssh-service.sh
      - chmod +x ./travis-script/test-push-pull-run.sh     
+     - chmod +x ./travis-script/test-aquasec-scan.sh
      - sudo apt-get install -y jq
 jobs:
   include:

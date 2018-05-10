@@ -52,10 +52,9 @@ test_Dockerfile(){
     fi
 }
 
-echo "Docker: "${DOCKER_IMAGE_NAME}"/"${DOCKER_IMAGE_VERSION}
-echo "Docker: "${DOCKER_IMAGE_NAME}"/"${DOCKER_IMAGE_VERSION} >> result.log
+echo "Docker: "${DOCKER_IMAGE_NAME}"/"${DOCKER_IMAGE_VERSION} | tee -a result.log
 test_Dockerfile
-echo "PASSED - Passed this stage." >> result.log
+echo "PASSED - Passed this stage." | tee -a result.log
 
 
 

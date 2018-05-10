@@ -16,10 +16,8 @@ build_image(){
         echo "FAILED - Build fail!!!"
         exit 1
     else
-        echo "${testBuildImage}"
-        echo "${testBuildImage}" >> result.log        
-        echo "PASSED - Build Successfully!!!."
-        echo "PASSED - Build Successfully!!!." >> result.log
+        echo "${testBuildImage}" | tee -a result.log
+        echo "PASSED - Build Successfully!!!." | tee -a result.log
     fi
     _do cd ..
     _do cd ..

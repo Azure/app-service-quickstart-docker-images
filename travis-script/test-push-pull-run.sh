@@ -15,14 +15,11 @@ setTag_push_rm(){
         echo "FAILED - Set TAG Failed!!!"
         exit 1
     else
-        echo "${testBuildImage}"
-        echo "${testBuildImage}" >> result.log
-        echo "PASSED - Set TAG Successfully!."
-        echo "PASSED - Set TAG Successfully!." >> result.log
+        echo "${testBuildImage}" | tee -a result.log
+        echo "PASSED - Set TAG Successfully!." | tee -a result.log
     fi
     _do docker push "${DOCKER_ACCOUNT}"/"${DOCKER_IMAGE_NAME}":"${TAG}"
-    echo "PASSED - Pushed  ${DOCKER_ACCOUNT}/${DOCKER_IMAGE_NAME}:${TAG} Successfully!."
-    echo "PASSED - Pushed  ${DOCKER_ACCOUNT}/${DOCKER_IMAGE_NAME}:${TAG} Successfully!." >> result.log
+    echo "PASSED - Pushed  ${DOCKER_ACCOUNT}/${DOCKER_IMAGE_NAME}:${TAG} Successfully!." | tee -a result.log
     echo "INFORMATION: Before rmi - docker images"
     _do docker images
     echo "INFORMATION - RM ""${DOCKER_ACCOUNT}"/"${DOCKER_IMAGE_NAME}":"${TAG}"
@@ -31,8 +28,7 @@ setTag_push_rm(){
     _do docker images
 }
 
-echo "Stage1 - Set Tag and Push"
-echo "Stage1 - Set Tag and Push" >> result.log
+echo "Stage1 - Set Tag and Push" | tee -a result.log
 echo "Build Number: ${TRAVIS_BUILD_NUMBER}"
 echo "TRAVIS_EVENT_TYPE: ${TRAVIS_EVENT_TYPE}"
 echo "TRAVIS_COMMIT_MESSAGE: ${TRAVIS_COMMIT_MESSAGE}"
@@ -78,8 +74,7 @@ testBuildImage=$(docker images | grep "${TAG}")
     else
         echo "$testBuildImage"
         echo "$testBuildImage" >> result.log
-        echo "PASSED - Docker image pull and run Successfully!. You can manually verify it!"
-        echo "PASSED - Docker image pull and run Successfully!. You can manually verify it!" >> result.log
+        echo "PASSED - Docker image pull and run Successfully!. You can manually verify it!" | tee -a result.log
     fi
 _do docker stop testdocker
 _do docker rm testdocker
@@ -93,8 +88,7 @@ if [ $isSignOff == "true" ]; then #Is it "#sign-off" or "master_brnach"?
         _do cd ..
         echo "LATEST_VERSION:"$LATEST_VERSION
         if [ $DOCKER_IMAGE_VERSION == $LATEST_VERSION ]; then             
-            echo "INFORMATION - This time, also need to push as latest version......"
-            echo "INFORMATION - This time, also need to push as latest version......" >> result.log    
+            echo "INFORMATION - This time, also need to push as latest version......" | tee -a result.log    
             TAG="latest"
             echo "INFORMATION - Set TAG as ""${TAG}"" and push......" 
             setTag_push_rm        

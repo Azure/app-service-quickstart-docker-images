@@ -63,10 +63,8 @@ docker_count=0
 show_docker_list(){
     echo ""
     echo ""
-    echo "========================================"    
-    echo "========================================" >> result.log
-    echo "INFORMATION - This time, we need to verify below dockers:"
-    echo "INFORMATION - This time, we need to verify below dockers:" >> result.log
+    echo "========================================" | tee -a result.log  
+     echo "INFORMATION - This time, we need to verify below dockers:" | tee -a result.log
     echo " "
     echo " "
     docker_count=1
@@ -141,8 +139,7 @@ get_files_from_commit(){
     curl https://api.github.com/repos/"${TRAVIS_REPO_SLUG}"/commits/"$commit_sha" > commit_files.json
 	jq '.files | .[] | .filename' commit_files.json > commit_files.txt
 	sed -i 's/\"//g' commit_files.txt
-	echo "Below files are changed:"
-    echo "Below files are changed:" >> result.log
+	echo "Below files are changed:" | tee -a result.log
     cat commit_files.txt
     cat commit_files.txt >> result.log
     
@@ -192,8 +189,7 @@ echo "========================================"
 touch result.log
 # Get Changed files list / dockers list
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-    echo "INFORMATION - This is a PUSH/MERGE, Contains below Commit:"
-    echo "INFORMATION - This is a PUSH/MERGE, Contains below Commit:" >> result.log
+    echo "INFORMATION - This is a PUSH/MERGE, Contains below Commit:" | tee -a result.log
     echo $TRAVIS_COMMIT
     echo $TRAVIS_COMMIT >> result.log    
     commit_sha=$TRAVIS_COMMIT    
@@ -204,8 +200,7 @@ else
     jq '.[] | .sha' TEMP.txt > PR_SHAs.txt
     sed -i 's/\"//g' PR_SHAs.txt	
     rm TEMP.txt
-    echo "INFORMATION - This is a PR, Contains below Commits:"
-    echo "INFORMATION - This is a PR, Contains below Commits:" >> result.log
+    echo "INFORMATION - This is a PR, Contains below Commits:" | tee -a result.log
     cat PR_SHAs.txt
     cat PR_SHAs.txt >> result.log
     line_count_sha=1
@@ -226,8 +221,7 @@ fi
 
 echo "dockers: "${dockers}
 if test $[dockers] -eq 0; then
-    echo "INFORMATION - This time, doesn't change any files related with docker, no need to verify."
-    echo "INFORMATION - This time, doesn't change any files related with docker, no need to verify." >> result.log
+    echo "INFORMATION - This time, doesn't change any files related with docker, no need to verify." | tee -a result.log
     echo "========================================"
     echo "===============Result.log:=============="
     echo "========================================"
@@ -237,18 +231,15 @@ if test $[dockers] -eq 0; then
 fi
 
 show_docker_list
-echo "========================================"
-echo "========================================" >> result.log
+echo "========================================" | tee -a result.log
 # Get folders from buildin repo
 if [ ! -e buildin_folders.txt ]; then
     curl https://api.github.com/repos/azure/app-service-builtin-images/contents | jq '.[] | .path' > buildin_folders.txt
 fi
 # Default account is TEST, if it's master branch, set PROD account.
 if [ "$TRAVIS_BRANCH" == "master" ];then
-    echo "========================================"
-    echo "========================================" >> result.log
-    echo "INFORMATION - Merge to master branch, using PROD......"
-    echo "INFORMATION - Merge to master branch, using PROD......" >> result.log
+    echo "========================================" | tee -a result.log
+    echo "INFORMATION - Merge to master branch, using PROD......" | tee -a result.log
     DOCKER_USERNAME=$PROD_DOCKER_USERNAME
     DOCKER_ACCOUNT=$PROD_DOCKER_ACCOUNT
     DOCKER_PASSWORD=$PROD_DOCKER_PASSWORD    
@@ -258,16 +249,12 @@ docker_count=1
 while [ $docker_count -le $dockers ]
 do
     docker_folder=${docker_image_name["${docker_count}"]}"/"${docker_image_version["${docker_count}"]}
-    echo "========================================"
-    echo "========================================" >> result.log
-	echo "PATH: "$docker_folder	
-    echo "PATH: "$docker_folder	>> result.log
+    echo "========================================" | tee -a result.log
+    echo "PATH: "$docker_folder	| tee -a result.log
     #Is this commit remove this Image/Version? If yes, we can skip this step.
     if test ! -d $docker_folder; then
-        echo "INFORMATION: This commit Remove "${docker_image_name["${docker_count}"]}"/"${docker_image_version["${docker_count}"]}" !"
-        echo "INFORMATION: This commit Remove "${docker_image_name["${docker_count}"]}"/"${docker_image_version["${docker_count}"]}" !" >> result.log
-        echo "INFORMATION: SKIP this stage"
-        echo "INFORMATION: SKIP this stage" >> result.log
+        echo "INFORMATION: This commit Remove "${docker_image_name["${docker_count}"]}"/"${docker_image_version["${docker_count}"]}" !" | tee -a result.log
+        echo "INFORMATION: SKIP this stage" | tee -a result.log
     else
         blank_count=0
         blank_count=$(echo ${docker_folder} | grep -o ' ' | wc -l)    
@@ -289,10 +276,8 @@ do
         fi
         echo ""
         echo ""
-        echo "========================================"
-        echo "INFORMATION - Start to Build......"${docker_image_name["${docker_count}"]}":"${docker_image_version["${docker_count}"]}
-        echo "========================================" >> result.log
-        echo "INFORMATION - Start to Build......"${docker_image_name["${docker_count}"]}":"${docker_image_version["${docker_count}"]} >> result.log >> result.log
+        echo "INFORMATION - Start to Build......"${docker_image_name["${docker_count}"]}":"${docker_image_version["${docker_count}"]} | tee -a result.log
+        echo "========================================" | tee -a result.log
         ./travis-script/test-build.sh ${docker_image_name["${docker_count}"]} ${docker_image_version["${docker_count}"]}
         test_result=$?		
 		if ((test_result!=0)); then
@@ -302,20 +287,16 @@ do
         docker images
         # It's PR for build-test branch, verify docker files and run image locally.
         if [ "$TRAVIS_EVENT_TYPE" == "pull_request" ]; then
-            echo "========================================"
-            echo "INFORMATION - Start to Verify Docker files:"
-            echo "========================================" >> result.log
-            echo "INFORMATION - Start to Verify Docker files:" >> result.log
+            echo "========================================" | tee -a result.log
+            echo "INFORMATION - Start to Verify Docker files:" | tee -a result.log
             ./travis-script/test-dockerfile.sh ${docker_image_name["${docker_count}"]} ${docker_image_version["${docker_count}"]}
 		    test_result=$?		
 		    if [ $test_result -ne 0 ]; then
 			    echo "ERROR - Verify failed, Please double check......"
 			    exit -1
 		    fi
-            echo "========================================"
-            echo "INFORMATION - Start to run Docker Image:"
-            echo "========================================" >> result.log
-            echo "INFORMATION - Start to run Docker Image:" >> result.log            
+            echo "========================================" | tee -a result.log
+            echo "INFORMATION - Start to run Docker Image:" | tee -a result.log            
             docker run -d -p 80:80 --name testdocker ${docker_image_name["${docker_count}"]}
             test_result=$?		
 		    if ((test_result!=0)); then
@@ -324,18 +305,22 @@ do
 		    fi
             # Verify SSH service is opened.
             ./travis-script/test-ssh-service.sh            
-            docker stop testdocker
+            docker stop testdocker            
             docker rm testdocker
         # It's Merge, push/pull/run.
         else
-            echo "========================================"
-            echo "INFORMATION - Start to PUSH/PULL/RUN:"
-            echo "========================================" >> result.log
-            echo "INFORMATION - Start to PUSH/PULL/RUN:" >> result.log
+            echo "========================================" | tee -a result.log
+            echo "INFORMATION - Start to PUSH/PULL/RUN:" | tee -a result.log
             ./travis-script/test-push-pull-run.sh ${docker_image_name["${docker_count}"]} ${docker_image_version["${docker_count}"]}
             test_result=$?		
 		    if ((test_result!=0)); then
 			    echo "ERROR - PUSH/PULL/RUN failed, Please double check......"            
+			    exit -1
+		    fi
+            ./travis-script/test-aquasec-scan.sh ${docker_image_name["${docker_count}"]}
+            test_result=$?
+            if ((test_result!=0)); then
+			    echo "ERROR - AquaSec Scanning failed, Please double check......"            
 			    exit -1
 		    fi
         fi        
