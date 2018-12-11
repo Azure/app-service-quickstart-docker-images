@@ -1,0 +1,9 @@
+/home/LogFiles/nginx/access.log /home/LogFiles/nginx/error.log{
+	su nginx nginx
+	maxsize 10M
+	rotate 20	
+	sharedscripts
+	postrotate
+	  /usr/sbin/nginx -s stop && sh /usr/local/bin/super_nginx.sh
+	endscript
+}

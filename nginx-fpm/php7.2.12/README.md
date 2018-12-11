@@ -46,7 +46,7 @@ ps aux
 # Kill master process of php-fpm
 kill -INT <gid>
 # start php-fpm again
-php-fpm -D
+php-fpm -D && chmod 777 /run/php/php7.0-fpm.sock
 ```
 5. Xdebug is turned on.
 

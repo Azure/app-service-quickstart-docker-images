@@ -231,7 +231,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 	# change default root path to $HOME_SITE
 	&& mkdir -p /etc/nginx/conf.d \
     && mkdir -p ${HOME_SITE} \
-    && chown -R www-data:www-data $HOME_SITE \
+    && chown -R nginx:nginx $HOME_SITE \
     && echo "<?php phpinfo();" > $HOME_SITE/index.php \
 # ------
 # mariadb
@@ -358,8 +358,9 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 # log rotate & supervisor
 # -------------
 	&& apk update \
-	&& apk add logrotate supervisor \
-	&& rm -f /etc/supervisord.conf \
+	&& apk add logrotate supervisor \	
+	# rotate log files once/5 mins, triaged by crond.
+	&& echo "*/5     *       *       *       *       /usr/sbin/logrotate /etc/logrotate.conf" >> /etc/crontabs/root \
 # -------------
 # phpmyadmin
 # -------------
@@ -403,7 +404,13 @@ COPY phpmyadmin-config.inc.php $PHPMYADMIN_SOURCE/
 COPY phpmyadmin-default.conf $PHPMYADMIN_SOURCE/phpmyadmin-default.conf
 # log rotater
 COPY logrotate.conf /etc/logrotate.conf
-COPY nginx /etc/logrotate.d/nginx
+RUN chmod 444 /etc/logrotate.conf
+COPY log-rotate-nginx /etc/logrotate.d/nginx
+RUN chmod 444 /etc/logrotate.d/nginx
+COPY log-rotate-php /etc/logrotate.d/php
+RUN chmod 444 /etc/logrotate.d/php
+COPY log-rotate-supervisord /etc/logrotate.d/supervisord
+RUN chmod 444 /etc/logrotate.d/supervisord
 # supervisor
 COPY supervisord.conf /etc/
 COPY super_nginx.sh /usr/local/bin

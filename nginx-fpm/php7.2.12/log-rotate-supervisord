@@ -1,0 +1,5 @@
+/home/LogFiles/supervisor/*.log{
+	su nginx nginx
+	maxsize 10M
+	rotate 20	
+}

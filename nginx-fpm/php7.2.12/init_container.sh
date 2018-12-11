@@ -59,7 +59,7 @@ setup_phpmyadmin(){
     rm -rf $PHPMYADMIN_SOURCE
 	if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
         echo "INFO: NOT in Azure, chown for "$PHPMYADMIN_HOME  
-        chown -R www-data:www-data $PHPMYADMIN_HOME
+        chown -R nginx:nginx $PHPMYADMIN_HOME
 	fi
 }
 
@@ -67,7 +67,7 @@ setup_phpmyadmin(){
 test ! -d "$HOME_SITE" && echo "INFO: $HOME_SITE not found. creating..." && mkdir -p $HOME_SITE
 if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
     echo "INFO: NOT in Azure, chown for "$HOME_SITE  
-    chown -R www-data:www-data $HOME_SITE 
+    chown -R nginx:nginx $HOME_SITE 
 fi 
 
 echo "Setup openrc ..." && openrc && touch /run/openrc/softlevel
@@ -82,7 +82,7 @@ mkdir -p /run/php
 touch /run/php/php7.0-fpm.sock
 if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
     echo "INFO: NOT in Azure, chown for /run/php/php7.0-fpm.sock"  
-    chown -R www-data:www-data /run/php/php7.0-fpm.sock 
+    chown -R nginx:nginx /run/php/php7.0-fpm.sock 
 fi 
 chmod 777 /run/php/php7.0-fpm.sock
 

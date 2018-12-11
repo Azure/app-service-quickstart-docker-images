@@ -1,0 +1,9 @@
+/home/LogFiles/nginx/php-error.log {
+	su nginx nginx
+	maxsize 10M
+	rotate 20
+	sharedscripts
+	postrotate
+	  killall -KILL php-fpm && php-fpm -D && chmod 777 /run/php/php7.0-fpm.sock
+	endscript
+}
