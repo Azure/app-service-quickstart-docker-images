@@ -21,17 +21,10 @@ ENV NGINX_LOG_DIR "/home/LogFiles/nginx"
 #varnish
 ENV VARNISH_LOG_DIR "/home/LogFiles/varnish"
 #php
-ENV PHP_HOME "/usr/local/etc/php"
-ENV PHP_CONF_DIR $PHP_HOME
-ENV PHP_CONF_FILE $PHP_CONF_DIR"/php.ini"
+ENV PHP_CONF_FILE "/usr/local/etc/php/php.ini"
 # Composer
 # Updation: https://getcomposer.org/download/
 ENV COMPOSER_DOWNLOAD_URL "https://getcomposer.org/installer"
-ENV COMPOSER_ALLOW_SUPERUSER 1
-ENV COMPOSER_HOME /home/.composer
-ENV COMPOSER_VERSION "1.6.1"
-# SHA384SUM https://composer.github.io/installer.sha384sum
-ENV COMPOSER_SETUP_SHA 544e09ee996cdf60ece3804abc52599c22b1f40f4323403c44d44fdfdd586475ca9813a858088ffbc1f233e9b180f061
 # ====================
 # Download and Install
 # ~. essentials
@@ -41,7 +34,7 @@ RUN mkdir -p $DOCKER_BUILD_HOME
 WORKDIR $DOCKER_BUILD_HOME
 RUN set -ex \
 # --------
-# ~. essentials (varnish)
+# ~. essentials
 # --------
 # ~. PHP extensions
 # --------
@@ -98,7 +91,7 @@ RUN set -ex \
 # ----------
 # 2. composer
 # ----------
-	&& curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
+	&& curl -sS $COMPOSER_DOWNLOAD_URL | php -- --install-dir=/usr/bin --filename=composer \
 	&& composer self-update \
 # ----------
 # 3. drush
@@ -126,17 +119,18 @@ RUN set -ex \
 # =========
 WORKDIR $DRUPAL_HOME
 RUN rm -rf $DOCKER_BUILD_HOME
+# mariadb
+COPY my.cnf /etc/mysql/
 # nginx
-COPY spec-settings.conf /etc/nginx/conf.d/spec-settings.conf
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY spec-settings.conf /etc/nginx/conf.d/
+COPY nginx.conf /etc/nginx/
 RUN rm -rf /etc/nginx/conf.d/default.conf
 # php
-COPY php.ini /usr/local/etc/php/conf.d/php.ini
+COPY php.ini $PHP_CONF_FILE
 # drupal
 COPY drupal-database-install-tasks.php ${DRUPAL_SOURCE}
 # phpmyadmin
-COPY phpmyadmin-default.conf $PHPMYADMIN_SOURCE/phpmyadmin-default.conf
-COPY default.phpmyadmin.vcl $PHPMYADMIN_SOURCE/default.phpmyadmin.vcl
+COPY phpmyadmin_src/. $PHPMYADMIN_SOURCE/
 # Varinish
 COPY default.vcl /etc/varnish/default.vcl
 # =====
@@ -144,7 +138,5 @@ COPY default.vcl /etc/varnish/default.vcl
 # =====
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
-COPY super_log_files.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/super_log_files.sh
 EXPOSE 2222 80
 ENTRYPOINT ["entrypoint.sh"]

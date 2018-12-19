@@ -3,6 +3,7 @@
 # set -e
 
 php -v
+
 setup_mariadb_data_dir(){
     test ! -d "$MARIADB_DATA_DIR" && echo "INFO: $MARIADB_DATA_DIR not found. creating ..." && mkdir -p "$MARIADB_DATA_DIR"
 
@@ -15,7 +16,7 @@ setup_mariadb_data_dir(){
 	    echo "INFO: 'mysql' database already exists under $MARIADB_DATA_DIR."
     fi
 
-    rm -rf /var/lib/mysql
+    rm -Rf /var/lib/mysql
     ln -s $MARIADB_DATA_DIR /var/lib/mysql
     chown -R mysql:mysql $MARIADB_DATA_DIR
     test ! -d /run/mysqld && echo "INFO: /run/mysqld not found. creating ..." && mkdir -p /run/mysqld
@@ -47,17 +48,21 @@ start_mariadb(){
             process=`ps -ef |grep mysql|grep -v grep |wc -l`    
         fi
     done
+
+    # create default database 'azurelocaldb'
+    mysql -u root -e "CREATE DATABASE IF NOT EXISTS azurelocaldb; FLUSH PRIVILEGES;"
 }
 
 #unzip phpmyadmin
 setup_phpmyadmin(){
     test ! -d "$PHPMYADMIN_HOME" && echo "INFO: $PHPMYADMIN_HOME not found. creating..." && mkdir -p "$PHPMYADMIN_HOME"
     cd $PHPMYADMIN_SOURCE
-    tar -xf phpMyAdmin.tar.gz -C $PHPMYADMIN_HOME --strip-components=1
-    cp -R phpmyadmin-config.inc.php $PHPMYADMIN_HOME/config.inc.php    
-    cp -R phpmyadmin-default.conf /etc/nginx/conf.d/default.conf
+    tar -xf phpMyAdmin.tar.gz -C $PHPMYADMIN_HOME/ --strip-components=1
+    cp -R phpmyadmin-default.conf /etc/nginx/nginx.conf    
+    cp -R phpmyadmin-config.inc.php $PHPMYADMIN_HOME/config.inc.php
+    cp -R default.phpmyadmin.vcl /etc/varnish/default.vcl    
 	cd /
-    rm -rf $PHPMYADMIN_SOURCE
+    rm -Rf $PHPMYADMIN_SOURCE
     if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
         echo "INFO: NOT in Azure, chown for "$PHPMYADMIN_HOME  
         chown -R www-data:www-data $PHPMYADMIN_HOME
@@ -124,7 +129,7 @@ setup_drupal(){
     do
         echo "INFO: $DRUPAL_HOME is exist, clean it ..."        
         chmod 777 -R $DRUPAL_HOME 
-        rm -rf $DRUPAL_HOME
+        rm -Rf $DRUPAL_HOME
     done
     ln -s $DRUPAL_PRJ/web  $DRUPAL_HOME           	
 }
@@ -135,16 +140,6 @@ if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
 fi
 
 echo "Setup openrc ..." && openrc && touch /run/openrc/softlevel
-
-echo "INFO: creating /run/php/php7.0-fpm.sock ..."
-test -e /run/php/php7.0-fpm.sock && rm -f /run/php/php7.0-fpm.sock
-mkdir -p /run/php
-touch /run/php/php7.0-fpm.sock
-if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
-    echo "INFO: NOT in Azure, chown for /run/php/php7.0-fpm.sock"  
-    chown -R www-data:www-data /run/php/php7.0-fpm.sock 
-fi 
-chmod 777 /run/php/php7.0-fpm.sock
 
 DATABASE_TYPE=$(echo ${DATABASE_TYPE}|tr '[A-Z]' '[a-z]')
 if [ "${DATABASE_TYPE}" == "local" ]; then  
@@ -165,7 +160,7 @@ if [ "${DATABASE_TYPE}" == "local" ]; then
     # Set default value of username/password if they are't exist/null.
     DATABASE_USERNAME=${DATABASE_USERNAME:-phpmyadmin}
     DATABASE_PASSWORD=${DATABASE_PASSWORD:-MS173m_QN}
-    DATABASE_HOST=${DATABASE_HOST:-localhost}
+    DATABASE_HOST=${DATABASE_HOST:-127.0.0.1}
     DATABASE_NAME=${DATABASE_NAME:-azurelocaldb}
     echo "phpmyadmin username: "$DATABASE_USERNAME    
     echo "phpmyadmin password: "$DATABASE_PASSWORD 
@@ -180,7 +175,6 @@ if [ "${DATABASE_TYPE}" == "local" ]; then
 fi
 
 # setup Drupal
-
 if [ -e "$DRUPAL_HOME/sites/default/settings.php" ]; then
 # Site is exist.
     if [ -d "$DRUPAL_PRJ" ]; then
@@ -232,7 +226,6 @@ else
     sed -i "s/\/var\/run\/php\/php7.0-fpm.sock/9000/g" /usr/local/etc/php-fpm.d/zz-docker.conf 
 fi
 
-cd $DRUPAL_HOME
 if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
     echo "NOT in AZURE, Start crond, log rotate..."
     crond
@@ -241,10 +234,13 @@ fi
 test ! -d "$SUPERVISOR_LOG_DIR" && echo "INFO: $SUPERVISOR_LOG_DIR not found. creating ..." && mkdir -p "$SUPERVISOR_LOG_DIR"
 test ! -d "$NGINX_LOG_DIR" && echo "INFO: Log folder for nginx/php not found. creating..." && mkdir -p "$NGINX_LOG_DIR"
 test ! -e /home/50x.html && echo "INFO: 50x file not found. createing..." && cp /usr/share/nginx/html/50x.html /home/50x.html
+test ! -d "/usr/local/php/tmp" && echo "INFO: Session folder for php not found. creating..." && mkdir -p "/usr/local/php/tmp"
+chmod 777 /usr/local/php/tmp
+# Backup default nginx setting, use customer's nginx setting
 test -d "/home/etc/nginx" && mv /etc/nginx /etc/nginx-bak && ln -s /home/etc/nginx /etc/nginx
 test ! -d "home/etc/nginx" && mkdir -p /home/etc && mv /etc/nginx /home/etc/nginx && ln -s /home/etc/nginx /etc/nginx
-
 test ! -d "$VARNISH_LOG_DIR" && echo "INFO: Log folder for varnish found. creating..." && mkdir -p "$VARNISH_LOG_DIR"
+
 echo "Starting Varnishd ..."
 /usr/sbin/varnishd -a :80 -f /etc/varnish/default.vcl
 
@@ -254,4 +250,3 @@ echo "Starting Nginx ..."
 
 cd /usr/bin/
 supervisord -c /etc/supervisord.conf
-

@@ -10,14 +10,14 @@ You can find it in Docker hub here [https://hub.docker.com/r/appsvcorg/drupal-ng
 This docker image currently contains the following components:
 1. Drupal (Git pull as you wish)
 2. nginx (1.14.0)
-3. PHP (7.2.11)
+3. PHP (7.2.13)
 4. Drush
-5. Composer (1.7.2)
+5. Composer (1.8.0)
 6. MariaDB ( 10.1.26/if using Local Database )
-7. Phpmyadmin ( 4.8.0/if using Local Database )
+7. Phpmyadmin ( 4.8.3/if using Local Database )
 
 ## How to Deploy to Azure 
-1. Create a Web App for Containers, set Docker container as ```appsvcorg/drupal-nginx-fpm:php7.2.9``` 
+1. Create a Web App for Containers, set Docker container as ```appsvcorg/drupal-nginx-fpm:0.5``` 
    OR: Create a Drupal on Linux Web App With MySQL.
 2. Add one App Setting ```WEBSITES_CONTAINER_START_TIME_LIMIT``` = 900
 3. Browse your site and wait almost 10 mins, you will see install page of Drupal.
@@ -34,8 +34,8 @@ GIT_BRANCH | master
 
 4. Browse your site
 
->Note: GIT directory: /home/site/wwwroot.
->
+>Note: GIT directory: /home/drupal_prj.
+>Note: root: /home/site/wwwroot -> /home/drupal_prj/web
 >Note: ```WEBSITES_ENABLE_APP_SERVICE_STORAGE``` = false, Before restart web app, need to store your changes by "git push", it will be pulled again after restart.
 >
 >Note: ```WEBSITES_ENABLE_APP_SERVICE_STORAGE``` = true, and /home/site/wwwroot/sites/default/settings.php is exist, it will not pull again after restart.
@@ -66,16 +66,34 @@ DATABASE_PASSWORD | some-string
 # find gid of php-fpm
 ps aux
 # Kill master process of php-fpm
-kill -INT <gid>
+killall -9 php-fpm
 # start php-fpm again
-php-fpm -D
-chmod 777 /run/php/php7.0-fpm.sock
+php-fpm -D && chmod 777 /run/php/php7.0-fpm.sock
 ```
 5. Xdebug is turned on.
 
 # Choose Listen Type of php-fpm/nginx
 1. By default, ```LISTEN_TYPE``` = socket.
 2. Update App Setting ```LISTEN_TYPE``` = port if you perfer to listening from TCP/IP.
+
+## How to update config files of nginx
+1. Go to "/etc/nginx", update config files as your wish. 
+2. Reload by below cmd: 
+```
+/usr/sbin/nginx -s reload
+```
+
+## Tips of Log rotate
+1. By default, log rotate is disabled if deploy this images to web app for containers of azure. It's enabled if you use this image by "docker run".
+2. Log rotate is managed by crond, you can start it with below cmd, it will check logs files in the /home/LogFiles/nginx every minute, and rotate them if bigger than 1M. Old files are stored in /home/LogFiles/olddir, keep 20 backup files by default setting.
+```
+crond
+```
+3. Please keep an eye on the log files, the performance will be going down if it's too big.
+4. If you don't like to start crond service to triage log rotate every minute, you also can manually triage it by below cmd as your wish, it will talk a while if these log files have already been too big.
+```
+logrotate /etc/logrotate.conf
+```
 
 # Updating Drupal version , themes , files 
 
@@ -108,7 +126,12 @@ composer require drupal/adminimal_theme
 - Must include  App Setting ```WEBSITES_ENABLE_APP_SERVICE_STORAGE``` = true  as soon as you need files to be persisted.
 - Deploy to Azure, Pull and run this image need some time, You can include App Setting ```WEBSITES_CONTAINER_START_TIME_LIMIT``` to specify the time in seconds as need, Default is 240 and max is 1800, suggest to set it as 900 when using this version.
 
-## Change Log 
+## Change Log
+- **Version 0.5**
+  1. Upgrade php-fpm/composer
+  2. Upgrade phpmyadmin.
+  3. Add function log rotate. (It's disabed if deploy to web app of azure by default.)
+  4. Php-fpm and nginx are watched by supervisord.   
 - **Version 0.46**
   1. Update php settings, php memory = 512M.
 - **Version 0.45**

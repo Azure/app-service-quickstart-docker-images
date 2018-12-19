@@ -1,18 +1,23 @@
 <?php
+
 namespace Drupal\Core\Database\Install;
+
 use Drupal\Core\Database\Database;
+
 /**
  * Database installer structure.
  *
  * Defines basic Drupal requirements for databases.
  */
 abstract class Tasks {
+
   /**
    * The name of the PDO driver this database type requires.
    *
    * @var string
    */
   protected $pdoDriver;
+
   /**
    * Structure that describes each task to run.
    *
@@ -28,7 +33,7 @@ abstract class Tasks {
     ],
     [
       'arguments'   => [
-        'CREATE TABLE {drupal_install_test} (id int NULL)',
+        'CREATE TABLE {drupal_install_test} (id int NOT NULL PRIMARY KEY)',
         'Drupal can use CREATE TABLE database commands.',
         'Failed to <strong>CREATE</strong> a test table on your database server with the command %query. The server reports the following message: %error.<p>Are you sure the configured username has the necessary permissions to create tables in the database?</p>',
         TRUE,
@@ -63,6 +68,7 @@ abstract class Tasks {
       ],
     ],
   ];
+
   /**
    * Results from tasks.
    *
@@ -72,34 +78,40 @@ abstract class Tasks {
     'fail' => [],
     'pass' => [],
   ];
+
   /**
    * Ensure the PDO driver is supported by the version of PHP in use.
    */
   protected function hasPdoDriver() {
     return in_array($this->pdoDriver, \PDO::getAvailableDrivers());
   }
+
   /**
    * Assert test as failed.
    */
   protected function fail($message) {
     $this->results['fail'][] = $message;
   }
+
   /**
    * Assert test as a pass.
    */
   protected function pass($message) {
     $this->results['pass'][] = $message;
   }
+
   /**
    * Check whether Drupal is installable on the database.
    */
   public function installable() {
     return $this->hasPdoDriver() && empty($this->error);
   }
+
   /**
    * Return the human-readable name of the driver.
    */
   abstract public function name();
+
   /**
    * Return the minimum required version of the engine.
    *
@@ -110,6 +122,7 @@ abstract class Tasks {
   public function minimumVersion() {
     return NULL;
   }
+
   /**
    * Run database tasks and tests to see if Drupal can run on the database.
    *
@@ -136,13 +149,14 @@ abstract class Tasks {
     }
     return $this->results['fail'];
   }
+
   /**
    * Check if we can connect to the database.
    */
   protected function connect() {
     try {
       // This doesn't actually test the connection.
-      db_set_active();
+      Database::setActiveConnection();
       // Now actually do a check.
       Database::getConnection();
       $this->pass('Drupal can CONNECT to the database ok.');
@@ -153,6 +167,7 @@ abstract class Tasks {
     }
     return TRUE;
   }
+
   /**
    * Run SQL tests to ensure the database can execute commands with the current user.
    */
@@ -166,6 +181,7 @@ abstract class Tasks {
       return !$fatal;
     }
   }
+
   /**
    * Check the engine version.
    */
@@ -175,6 +191,7 @@ abstract class Tasks {
       $this->fail(t("The database server version %version is less than the minimum required version %minimum_version.", ['%version' => Database::getConnection()->version(), '%minimum_version' => $this->minimumVersion()]));
     }
   }
+
   /**
    * Return driver specific configuration options.
    *
@@ -217,6 +234,7 @@ abstract class Tasks {
         ],
       ],
     ];
+
     $form['username'] = [
       '#type' => 'textfield',
       '#title' => t('Database username'),
@@ -229,6 +247,7 @@ abstract class Tasks {
         ],
       ],
     ];
+
     $form['password'] = [
       '#type' => 'password',
       '#title' => t('Database password'),
@@ -237,11 +256,13 @@ abstract class Tasks {
       '#required' => TRUE,
       '#size' => 45,
     ];
+
     $form['advanced_options'] = [
       '#type' => 'details',
       '#title' => t('Advanced options'),
       '#weight' => 10,
     ];
+
     $profile = drupal_get_profile();
     $db_prefix = ($profile == 'standard') ? 'drupal_' : $profile . '_';
     $form['advanced_options']['prefix'] = [
@@ -252,6 +273,7 @@ abstract class Tasks {
       '#description' => t('If more than one application will be sharing this database, a unique table name prefix – such as %prefix – will prevent collisions.', ['%prefix' => $db_prefix]),
       '#weight' => 10,
     ];
+
     $form['advanced_options']['host'] = [
       '#type' => 'textfield',
       '#title' => t('Host'),
@@ -261,6 +283,7 @@ abstract class Tasks {
       '#maxlength' => 255,
       '#required' => TRUE,
     ];
+
     $form['advanced_options']['port'] = [
       '#type' => 'number',
       '#title' => t('Port number'),
@@ -268,8 +291,10 @@ abstract class Tasks {
       '#min' => 0,
       '#max' => 65535,
     ];
+
     return $form;
   }
+
   /**
    * Validates driver specific configuration settings.
    *
@@ -284,10 +309,13 @@ abstract class Tasks {
    */
   public function validateDatabaseSettings($database) {
     $errors = [];
+
     // Verify the table prefix.
     if (!empty($database['prefix']) && is_string($database['prefix']) && !preg_match('/^[A-Za-z0-9_.]+$/', $database['prefix'])) {
       $errors[$database['driver'] . '][prefix'] = t('The database table prefix you have entered, %prefix, is invalid. The table prefix can only contain alphanumeric characters, periods, or underscores.', ['%prefix' => $database['prefix']]);
     }
+
     return $errors;
   }
+
 }
