@@ -1,0 +1,18 @@
+    location /phpmyadmin {
+        root /home/;
+        index index.php index.html index.htm;
+        location ~ ^/phpmyadmin/(.+\.php)$ {
+            try_files $uri =404;
+            root /home/;
+            fastcgi_pass unix:/var/run/php/php-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        }
+        location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+            root /home/;
+        }
+    }
+    location /phpMyAdmin {
+        rewrite ^/* /phpmyadmin last;
+    }    

@@ -1,0 +1,6 @@
+/home/LogFiles/nginx/php-error.log {
+	su nginx nginx
+	maxsize 1M
+	rotate 20
+	olddir /home/LogFiles/olddir
+}
