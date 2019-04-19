@@ -1,4 +1,4 @@
-FROM php:7.3.2-fpm-alpine3.9
+FROM php:7.3.4-fpm-alpine3.9
 LABEL maintainer Azure App Service Container Images <appsvc-images@microsoft.com>
 # ========
 # ENV vars
@@ -144,6 +144,7 @@ RUN set -ex \
 		--with-compat \
 		--with-file-aio \
 		--with-http_v2_module \
+		--add-module=/usr/src/ngx_cache_purge-c7345057ad5429617fc0823e92e3fa8043840cef \
 	" \
 	&& addgroup -S nginx \
 	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
@@ -162,6 +163,7 @@ RUN set -ex \
 		geoip-dev \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
+	&& curl -fSL https://github.com/nullunit/ngx_cache_purge/archive/c7345057ad5429617fc0823e92e3fa8043840cef.zip -o ngx_cache_purge-2.3.zip \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& found=''; \
 	for server in \
@@ -179,6 +181,8 @@ RUN set -ex \
 	&& mkdir -p /usr/src \
 	&& tar -zxC /usr/src -f nginx.tar.gz \
 	&& rm nginx.tar.gz \
+	&& unzip ngx_cache_purge-2.3.zip -d /usr/src \
+	&& rm ngx_cache_purge-2.3.zip \
 	&& cd /usr/src/nginx-$NGINX_VERSION \
 	&& ./configure $CONFIG --with-debug \
 	&& make -j$(getconf _NPROCESSORS_ONLN) \
@@ -204,6 +208,7 @@ RUN set -ex \
 	&& strip /usr/sbin/nginx* \
 	&& strip /usr/lib/nginx/modules/*.so \
 	&& rm -rf /usr/src/nginx-$NGINX_VERSION \
+	&& rm -rf /usr/src/ngx_cache_purge-c7345057ad5429617fc0823e92e3fa8043840cef \
 	\
 	# Bring in gettext so we can get `envsubst`, then throw
 	# the rest away. To do this, we need to install `gettext`
@@ -409,7 +414,7 @@ COPY sshd_config /etc/ssh/
 # php
 COPY php.ini /usr/local/etc/php/php.ini
 COPY php_conf/. /usr/local/etc/php/conf.d/
-COPY zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+COPY php_fpm_conf/. /usr/local/etc/php-fpm.d/
 # nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx_conf/. /etc/nginx/conf.d/
