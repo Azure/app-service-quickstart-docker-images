@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# set -e
-
-php -v
-
 setup_mariadb_data_dir(){
     test ! -d "$MARIADB_DATA_DIR" && echo "INFO: $MARIADB_DATA_DIR not found. creating ..." && mkdir -p "$MARIADB_DATA_DIR"
 
@@ -71,12 +67,12 @@ setup_phpmyadmin(){
 
 #Get drupal from Git
 setup_drupal(){
-    while test -d "$DRUPAL_PRJ"  
-    do
+    if test -d "$DRUPAL_PRJ"  
+    then
         echo "INFO: $DRUPAL_PRJ is exist, clean it ..."
         # mv is faster than rm.    
         mv $DRUPAL_PRJ /home/bak/drupal_prj_bak$(date +%s)
-    done
+    fi
     test ! -d "$DRUPAL_PRJ" && echo "INFO: $DRUPAL_PRJ not found. creating..." && mkdir -p "$DRUPAL_PRJ"	
 	cd $DRUPAL_PRJ
 	GIT_REPO=${GIT_REPO:-https://github.com/azureappserviceoss/drupalcms-composer-azure}
@@ -134,11 +130,6 @@ setup_drupal(){
     ln -s $DRUPAL_PRJ/web  $DRUPAL_HOME           	
 }
 
-if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then 
-    echo "INFO: NOT in Azure, chown for "$DRUPAL_HOME 
-    chown -R nginx:nginx $DRUPAL_HOME
-fi
-
 echo "Setup openrc ..." && openrc && touch /run/openrc/softlevel
 
 DATABASE_TYPE=$(echo ${DATABASE_TYPE}|tr '[A-Z]' '[a-z]')
@@ -167,7 +158,7 @@ if [ "${DATABASE_TYPE}" == "local" ]; then
     export DATABASE_HOST
     export DATABASE_NAME
     export DATABASE_USERNAME
-    export DATABASE_PASSWORD   
+    export DATABASE_PASSWORD
     mysql -u root -e "GRANT ALL ON *.* TO \`$DATABASE_USERNAME\`@'localhost' IDENTIFIED BY '$DATABASE_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
      
     echo "Installing phpMyAdmin ..."
@@ -177,30 +168,16 @@ fi
 # setup Drupal
 if [ -e "$DRUPAL_HOME/sites/default/settings.php" ]; then
 # Site is exist.
-    if [ -d "$DRUPAL_PRJ" ]; then
-    # site is exist and is built by composer build, no need to git pull again.
-        echo "INFO: $DRUPAL_PRJ is exist..."        
-        echo "INFO: Site is Ready..."
-    else
-    # site is exist and it's not built by composer build, backup it at first.
-        echo "INFO: Old Version Site is exist, Backup Site..."        
-        if [ -d /home/bak/drupal_site ]; then
-            mv /home/bak/drupal_site /home/bak/drupal_site$(date +%s)
-        else            
-            mkdir -p /home/bak
-        fi
-        mv $DRUPAL_HOME /home/bak/drupal_site
-        echo "Installing Drupal ..."    
-        setup_drupal  
-    fi    
+    echo "INFO: $DRUPAL_PRJ is exist..."
+    echo "INFO: Site is Ready..."
 else
 # drupal isn't installed, fresh start
-    echo "Installing Drupal ..."    
-    setup_drupal   
+    echo "Installing Drupal ..."
+    setup_drupal
 fi
 
 if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
-    echo "INFO: NOT in Azure, chown for "$DRUPAL_PRJ  
+    echo "INFO: NOT in Azure, chown for "$DRUPAL_PRJ
     chown -R nginx:nginx $DRUPAL_PRJ 
 fi
 
@@ -209,17 +186,12 @@ if [ ! $WEBSITES_ENABLE_APP_SERVICE_STORAGE ]; then
     crond
 fi   
 
-test ! -d /home/apache-solr && mkdir /home/apache-solr && tar -xf /usr/src/apache-solr.tgz -C /home/apache-solr/ --strip-components=1 
 test ! -d "$SUPERVISOR_LOG_DIR" && echo "INFO: $SUPERVISOR_LOG_DIR not found. creating ..." && mkdir -p "$SUPERVISOR_LOG_DIR"
 test ! -d "$VARNISH_LOG_DIR" && echo "INFO: Log folder for varnish found. creating..." && mkdir -p "$VARNISH_LOG_DIR"
 test ! -d "$NGINX_LOG_DIR" && echo "INFO: Log folder for nginx/php not found. creating..." && mkdir -p "$NGINX_LOG_DIR"
 test ! -e /home/50x.html && echo "INFO: 50x file not found. createing..." && cp /usr/share/nginx/html/50x.html /home/50x.html
-# Backup default nginx setting, use customer's nginx setting
-test -d "/home/etc/nginx" && mv /etc/nginx /etc/nginx-bak && ln -s /home/etc/nginx /etc/nginx
-test ! -d "/home/etc/nginx" && mkdir -p /home/etc && mv /etc/nginx /home/etc/nginx && ln -s /home/etc/nginx /etc/nginx
-# Backup default varnish setting, use customer's nginx setting
-test -d "/home/etc/varnish" && mv /etc/varnish /etc/varnish-bak && ln -s /home/etc/varnish /etc/varnish
-test ! -d "/home/etc/varnish" && mkdir -p /home/etc && mv /etc/varnish /home/etc/varnish && ln -s /home/etc/varnish /etc/varnish
+
+php -v
 
 echo "Starting Varnishd ..."
 /usr/sbin/varnishd -a :80 -f /etc/varnish/default.vcl
@@ -228,12 +200,10 @@ echo "INFO: creating /run/php/php7.0-fpm.sock ..."
 test -e /run/php/php7.0-fpm.sock && rm -f /run/php/php7.0-fpm.sock
 mkdir -p /run/php && touch /run/php/php7.0-fpm.sock && chown nginx:nginx /run/php/php7.0-fpm.sock && chmod 777 /run/php/php7.0-fpm.sock
 
-
-sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config  
-
 echo "Starting Apache Solr Server ..."
-cd /home/apache-solr/solr/example && java -jar start.jar &
+solr start -force
 
+sed -i "s/SSH_PORT/$SSH_PORT/g" /etc/ssh/sshd_config
 echo "Starting SSH ..."
 echo "Starting php-fpm ..."
 echo "Starting Nginx ..."
